@@ -1,0 +1,14 @@
+{
+  "name": "presale-aggregator",
+  "version": "1.0.0",
+  "description": "Off-chain aggregator for tracking presale across multiple chains",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.11.1"
+  }
+}

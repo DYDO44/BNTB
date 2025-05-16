@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import PresalePhasesWrapper from "./PresalePhases.style";
 import hatImage from "../../assets/images/maga_cap.png";
 import stagesBackground from "../../assets/images/Stages-background.png";
 import { useMediaQuery } from "react-responsive";
+import { PresaleContext } from "../../utils/PresaleContext";
 
 const PresalePhases = () => {
-  const CURRENT_PRESALE_STAGE = 4; // Define the current presale stage (can be fetched from API in real app)
+  const { currentStage, tokenSold, presaleToken, tokenPercent } = useContext(PresaleContext);
   const INACTIVITY_TIMEOUT = 45000; // 45 seconds in milliseconds
   
-  const [activePhase, setActivePhase] = useState(CURRENT_PRESALE_STAGE); // Current active phase (1-9)
-  const [progressPercent, setProgressPercent] = useState(0); // Progress percentage (0-100)
-  const [selectedPhase, setSelectedPhase] = useState(CURRENT_PRESALE_STAGE); // Track which phase info to display
-  const [currentMobilePhase, setCurrentMobilePhase] = useState(CURRENT_PRESALE_STAGE); // For mobile slider
+  const [activePhase, setActivePhase] = useState(parseInt(currentStage) || 1); // Current active phase (1-9)
+  const [progressPercent, setProgressPercent] = useState(tokenPercent || 0); // Progress percentage (0-100)
+  const [selectedPhase, setSelectedPhase] = useState(parseInt(currentStage) || 1); // Track which phase info to display
+  const [currentMobilePhase, setCurrentMobilePhase] = useState(parseInt(currentStage) || 1); // For mobile slider
   
   // Media query for mobile view
   const isMobile = useMediaQuery({ maxWidth: 991 });
@@ -116,7 +117,7 @@ const PresalePhases = () => {
 
   // Initialize component with current stage and start inactivity timer
   useEffect(() => {
-    // Initialize with current presale stage
+    // Initialize with current presale stage from contract
     resetToCurrentStage();
     
     // Start the inactivity timer
@@ -139,6 +140,20 @@ const PresalePhases = () => {
     };
   }, []);
   
+  // Update when contract data changes
+  useEffect(() => {
+    if (currentStage) {
+      const stageNum = parseInt(currentStage);
+      setActivePhase(stageNum);
+      setSelectedPhase(stageNum);
+      setCurrentMobilePhase(stageNum);
+    }
+    
+    if (tokenPercent !== undefined) {
+      setProgressPercent(tokenPercent);
+    }
+  }, [currentStage, tokenPercent]);
+  
   // Update progress when active phase changes
   useEffect(() => {
     // Start with 0% and animate to the target percentage
@@ -153,9 +168,10 @@ const PresalePhases = () => {
   
   // Function to reset to current presale stage
   const resetToCurrentStage = () => {
-    setActivePhase(CURRENT_PRESALE_STAGE);
-    setSelectedPhase(CURRENT_PRESALE_STAGE);
-    setProgressPercent(calculateProgress(CURRENT_PRESALE_STAGE));
+    const stageNum = parseInt(currentStage) || 1;
+    setActivePhase(stageNum);
+    setSelectedPhase(stageNum);
+    setProgressPercent(tokenPercent || calculateProgress(stageNum));
   };
   
   // Start or restart the inactivity timer

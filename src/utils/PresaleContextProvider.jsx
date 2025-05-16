@@ -14,6 +14,7 @@ import {
 import { formatEther, formatUnits, parseEther } from "viem";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import PropTypes from "prop-types";
+import { ethers } from "ethers";
 
 const PresaleContextProvider = ({ children }) => {
   const { openConnectModal } = useConnectModal();
@@ -22,23 +23,35 @@ const PresaleContextProvider = ({ children }) => {
   const [configModule, setConfigModule] = useState(currentConfig.configModule);
   const [buyConfigModule, setBuyConfigModule] = useState(currentConfig.buyConfigModule);
 
-  // Since we now support only the BNB testnet, we use the only entry from chainInfo.
+  // Get chain IDs for both networks
   const bnbChainId = chainInfo[0].chainId;
+  const ethChainId = chainInfo[1].chainId;
 
-  // For network-related UI, we keep a single state for BNB (active by default)
+  // For network-related UI, we keep states for both networks
   const [buyOnItem, setBuyOnItem] = useState(currentConfig.buyChainId);
   const [buyOnText, setBuyOnText] = useState(currentConfig.buyTitle);
   const [buyOnIcon, setBuyOnIcon] = useState(currentConfig.buyIcon);
   const [selectedImg, setSelectedImg] = useState(currentConfig.icon);
   const [payWithText, setPayWithText] = useState(currentConfig.payWith);
   const [titleText, setTitleText] = useState(currentConfig.title);
-  const [isActiveBuyOnBnb, setIsActiveBuyOnBnb] = useState(true);
+  const [isActiveBuyOnBnb, setIsActiveBuyOnBnb] = useState(currentConfig.chainId === bnbChainId);
+  const [isActiveBuyOnEth, setIsActiveBuyOnEth] = useState(currentConfig.chainId === ethChainId);
 
-  // With only one network available, we simplify the network switching logic.
-  const handleBuyOn = () => {
-    setIsActiveBuyOnBnb(true);
-    switchChain({ chainId: bnbChainId });
-    setConfigModule(chainConfig(bnbChainId).configModule);
+  // Network switching logic for both networks
+  const handleBuyOn = (network) => {
+    if (network === 'bnb') {
+      setIsActiveBuyOnBnb(true);
+      setIsActiveBuyOnEth(false);
+      switchChain({ chainId: bnbChainId });
+      setConfigModule(chainConfig(bnbChainId).configModule);
+      setBuyConfigModule(chainConfig(bnbChainId).buyConfigModule);
+    } else if (network === 'eth') {
+      setIsActiveBuyOnBnb(false);
+      setIsActiveBuyOnEth(true);
+      switchChain({ chainId: ethChainId });
+      setConfigModule(chainConfig(ethChainId).configModule);
+      setBuyConfigModule(chainConfig(ethChainId).buyConfigModule);
+    }
     makeEmptyInputs();
   };
 
@@ -381,6 +394,49 @@ const PresaleContextProvider = ({ children }) => {
     if (totalSoldData >= 0) {
       const tmp = formatEther(totalSoldData);
       setTokenSold(tmp / 10 ** tokenSubDecimals);
+      
+      // Try to fetch data from the other chain
+      const fetchOtherChainData = async () => {
+        try {
+          // Determine which chain to query
+          const otherChainConfig = chainInfo.find(chain => chain.chainId !== chainId);
+          if (otherChainConfig) {
+            // Create a provider for the other chain
+            const provider = new ethers.JsonRpcProvider(
+              otherChainConfig.chainId === 97 
+                ? "https://data-seed-prebsc-1-s1.binance.org:8545/" 
+                : "https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+            );
+            
+            // Create contract instance for the other chain
+            const otherContract = new ethers.Contract(
+              otherChainConfig.configModule.PRESALE_CONTRACT_ADDRESS,
+              otherChainConfig.configModule.PRESALE_CONTRACT_ABI,
+              provider
+            );
+            
+            // Get total sold from other chain
+            const otherChainSold = await otherContract.totalSold();
+            const otherChainSoldFormatted = formatEther(otherChainSold);
+            
+            // Aggregate the data
+            const totalSoldAggregated = (tmp / 10 ** tokenSubDecimals) + (otherChainSoldFormatted / 10 ** tokenSubDecimals);
+            setTokenSold(totalSoldAggregated);
+            
+            // Update percentage based on aggregated data
+            if (presaleTokenAmountData) {
+              const presaleTokenAmount = formatEther(presaleTokenAmountData) / 10 ** tokenSubDecimals;
+              const aggregatedPercent = (totalSoldAggregated * 100) / presaleTokenAmount;
+              setTokenPercent(aggregatedPercent);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching data from other chain:", error);
+        }
+      };
+      
+      // Execute the function to fetch and aggregate data
+      fetchOtherChainData();
     }
 
     if (buyTokenDecimalsData && buyPresaleTokenData && buyTokenSoldData >= 0) {

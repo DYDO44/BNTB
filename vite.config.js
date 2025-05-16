@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react()],
   base: "",
   server: { 
-    port: 8080,
+    port: 12000,
     host: "0.0.0.0",
-    strictPort: false,
+    strictPort: true,
     cors: true,
     allowedHosts: true,
     headers: {
@@ -18,7 +18,7 @@ export default defineConfig({
     }
   },
   preview: {
-    port: 8080,
+    port: 12000,
     host: "0.0.0.0",
     strictPort: true,
     cors: true,
