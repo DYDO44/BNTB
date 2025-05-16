@@ -9,7 +9,7 @@ const chains = {
     chainId: 97,
     configModule: ConfigModuleBnb,
     payWith: "BNB",
-    title: "Buy on BNB",
+    title: "Buy with BNB",
   },
 };
 
