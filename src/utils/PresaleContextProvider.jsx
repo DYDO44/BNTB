@@ -39,19 +39,49 @@ const PresaleContextProvider = ({ children }) => {
 
   // Network switching logic for both networks
   const handleBuyOn = (network) => {
+    console.log("handleBuyOn called with network:", network);
+    
     if (network === 'bnb') {
+      console.log("Switching to BNB network");
       setIsActiveBuyOnBnb(true);
       setIsActiveBuyOnEth(false);
-      switchChain({ chainId: bnbChainId });
+      
+      // Update UI elements for BNB network
+      setSelectedImg(chainInfo[0].icon);
+      setTitleText(chainInfo[0].title);
+      setPayWithText(chainInfo[0].payWith);
+      
+      // Update configuration modules
       setConfigModule(chainConfig(bnbChainId).configModule);
       setBuyConfigModule(chainConfig(bnbChainId).buyConfigModule);
+      
+      // Save preference to localStorage
+      localStorage.setItem('preferredNetwork', 'bnb');
+      
+      // Switch chain last to avoid race conditions
+      switchChain({ chainId: bnbChainId });
     } else if (network === 'eth') {
+      console.log("Switching to ETH network");
       setIsActiveBuyOnBnb(false);
       setIsActiveBuyOnEth(true);
-      switchChain({ chainId: ethChainId });
+      
+      // Update UI elements for ETH network
+      setSelectedImg(chainInfo[1].icon);
+      setTitleText(chainInfo[1].title);
+      setPayWithText(chainInfo[1].payWith);
+      
+      // Update configuration modules
       setConfigModule(chainConfig(ethChainId).configModule);
       setBuyConfigModule(chainConfig(ethChainId).buyConfigModule);
+      
+      // Save preference to localStorage
+      localStorage.setItem('preferredNetwork', 'eth');
+      
+      // Switch chain last to avoid race conditions
+      switchChain({ chainId: ethChainId });
     }
+    
+    // Always clear inputs when switching networks
     makeEmptyInputs();
   };
 
@@ -296,6 +326,96 @@ const PresaleContextProvider = ({ children }) => {
     buyTokenError,
     buyTokenIsSuccess,
   ]);
+
+  // Initialize network preference from URL parameter or localStorage
+  useEffect(() => {
+    // First check URL parameters for network preference
+    const urlParams = new URLSearchParams(window.location.search);
+    const networkParam = urlParams.get('network');
+    
+    // Then check localStorage if no URL parameter
+    const savedNetwork = networkParam || localStorage.getItem('preferredNetwork');
+    console.log("Network preference:", networkParam ? "from URL: " + networkParam : "from localStorage: " + savedNetwork);
+    
+    if (savedNetwork === 'eth') {
+      console.log("Initializing with ETH network");
+      
+      // Update all UI elements for ETH network
+      setIsActiveBuyOnEth(true);
+      setIsActiveBuyOnBnb(false);
+      setSelectedImg(chainInfo[1].icon);
+      setTitleText(chainInfo[1].title);
+      setPayWithText(chainInfo[1].payWith);
+      setBuyOnItem('eth');
+      setBuyOnText('Buy with BNB');
+      setBuyOnIcon(chainInfo[0].icon);
+      
+      // Update configuration modules
+      setConfigModule(chainConfig(ethChainId).configModule);
+      setBuyConfigModule(chainConfig(ethChainId).buyConfigModule);
+      
+      // Save preference to localStorage (in case it came from URL)
+      localStorage.setItem('preferredNetwork', 'eth');
+      
+      // Switch chain if needed and if ethereum is available
+      if (window.ethereum && chainId !== ethChainId) {
+        try {
+          switchChain({ chainId: ethChainId });
+        } catch (error) {
+          console.error("Error switching chain:", error);
+        }
+      }
+    } else if (savedNetwork === 'bnb' || !savedNetwork) {
+      // Default to BNB if no preference is set
+      console.log("Initializing with BNB network");
+      
+      // Update all UI elements for BNB network
+      setIsActiveBuyOnBnb(true);
+      setIsActiveBuyOnEth(false);
+      setSelectedImg(chainInfo[0].icon);
+      setTitleText(chainInfo[0].title);
+      setPayWithText(chainInfo[0].payWith);
+      setBuyOnItem('bnb');
+      setBuyOnText('Buy with ETH');
+      setBuyOnIcon(chainInfo[1].icon);
+      
+      // Update configuration modules
+      setConfigModule(chainConfig(bnbChainId).configModule);
+      setBuyConfigModule(chainConfig(bnbChainId).buyConfigModule);
+      
+      // Save preference to localStorage
+      localStorage.setItem('preferredNetwork', 'bnb');
+      
+      // Switch chain if needed and if ethereum is available
+      if (window.ethereum && chainId !== bnbChainId) {
+        try {
+          switchChain({ chainId: bnbChainId });
+        } catch (error) {
+          console.error("Error switching chain:", error);
+        }
+      }
+    }
+    
+    // Remove network parameter from URL to avoid issues with refreshes
+    if (networkParam) {
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+    
+    // Set up event listener for chain changes
+    if (window.ethereum) {
+      window.ethereum.on('chainChanged', (chainId) => {
+        const newChainId = parseInt(chainId, 16);
+        if (newChainId === ethChainId) {
+          handleBuyOn('eth');
+          localStorage.setItem('preferredNetwork', 'eth');
+        } else if (newChainId === bnbChainId) {
+          handleBuyOn('bnb');
+          localStorage.setItem('preferredNetwork', 'bnb');
+        }
+      });
+    }
+  }, []);
 
   // Clear inputs when network or wallet changes
   useEffect(() => {

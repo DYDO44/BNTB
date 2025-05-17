@@ -14,33 +14,57 @@ const Dropdown = ({
   bnbChainId,
 }) => {
   const dropdownList = chainInfo;
-
   const [isDropdownActive, setIsDropdownActive] = useState(false);
+  
+  // Get the current active chain ID based on the title text
+  const getCurrentChainId = () => {
+    return titleText.includes("ETH") ? ethChainId : bnbChainId;
+  };
 
-  // Dropdown toggle functionality disabled since there's only one option
-  // Can be re-enabled when more options are added
+  // Enable dropdown toggle functionality for network selection
   const dropdownHandle = () => {
-    // Disabled: setIsDropdownActive(!isDropdownActive);
-    return; // Do nothing when clicked
+    setIsDropdownActive(!isDropdownActive);
   };
 
   const handleDropdownData = (item) => {
-    event.preventDefault();
-
+    if (!item) return;
+    
     setIsDropdownActive(false);
-    if (item.chainId == ethChainId) {
-      setIsActiveBuyOnBnb(false);
-      setIsActiveBuyOnEth(true);
-      switchChain({ chainId: ethChainId });
-      makeEmptyInputs();
-    }
-    if (item.chainId == bnbChainId) {
-      setIsActiveBuyOnEth(false);
-      setIsActiveBuyOnBnb(true);
-      switchChain({ chainId: bnbChainId });
-      makeEmptyInputs();
+    
+    // Log the item being selected for debugging
+    console.log("Network selected:", item.title, "Chain ID:", item.chainId);
+    
+    // Use a direct approach with a simple link
+    if (item.chainId === ethChainId) {
+      // Create a direct link to switch to ETH
+      const ethLink = document.createElement('a');
+      ethLink.href = '/eth.html';
+      ethLink.style.display = 'none';
+      document.body.appendChild(ethLink);
+      ethLink.click();
+      document.body.removeChild(ethLink);
+    } else if (item.chainId === bnbChainId) {
+      // Create a direct link to switch to BNB
+      const bnbLink = document.createElement('a');
+      bnbLink.href = '/bnb.html';
+      bnbLink.style.display = 'none';
+      document.body.appendChild(bnbLink);
+      bnbLink.click();
+      document.body.removeChild(bnbLink);
     }
   };
+
+  // Filter the dropdown list to only show the unselected option
+  const filteredDropdownList = dropdownList.filter(
+    (item) => item.chainId !== getCurrentChainId()
+  );
+
+  // Ensure we always have at least one option in the dropdown
+  useEffect(() => {
+    if (filteredDropdownList.length === 0) {
+      console.warn("No alternative networks available in dropdown");
+    }
+  }, [filteredDropdownList]);
 
   return (
     <DropdownWrapper variant={variant}>
@@ -53,9 +77,16 @@ const Dropdown = ({
       </button>
       {isDropdownActive && (
         <ul className="dropdown-list">
-          {dropdownList?.map((item, i) => (
+          {filteredDropdownList.map((item, i) => (
             <li key={i}>
-              <a href="#" onClick={() => handleDropdownData(item)}>
+              <a 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDropdownData(item);
+                }}
+              >
                 <img src={item.icon} alt="icon" />
                 <span>{item.title}</span>
               </a>

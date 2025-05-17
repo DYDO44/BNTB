@@ -20,24 +20,21 @@ const DropdownWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 14px;
-    cursor: default; /* Changed from default pointer to indicate non-clickable */
+    cursor: pointer; /* Changed to pointer to indicate clickable */
     box-sizing: border-box;
     font-family: ${({ theme }) => theme.fonts.primary};
     
-    /* Disabled dropdown arrow animation */
+    /* Enable dropdown arrow animation */
     &.active {
       &::after {
-        /* Disabled rotation
         top: 25px;
         transform: rotate(225deg);
-        */
       }
     }
 
-    /* Hide the dropdown arrow since it's not functional */
+    /* Show the dropdown arrow */
     &::after {
-      display: none;
-      /* Original styling preserved for future use
+      content: '';
       position: absolute;
       top: 20px;
       right: 20px;
@@ -48,7 +45,6 @@ const DropdownWrapper = styled.div`
       border: solid ${({ theme }) => theme.colors.white};
       border-width: 0 2px 2px 0;
       transform: rotate(45deg);
-      */
     }
 
     img {
@@ -66,7 +62,7 @@ const DropdownWrapper = styled.div`
 
   .dropdown-list {
     position: absolute;
-    z-index: 1;
+    z-index: 99;
     top: 100%;
     left: 0;
     width: 100%;
@@ -77,6 +73,7 @@ const DropdownWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 14px;
+    margin-top: 5px;
 
     li a {
       display: flex;

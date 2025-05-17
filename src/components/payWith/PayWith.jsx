@@ -3,7 +3,7 @@ import StatusIcon from "../../assets/images/icons/status.png";
 import UsdtIcon from "../../assets/images/token/usdt.png";
 import Dropdown from "./Dropdown/Dropdown";
 import { usePresaleData } from "../../utils/PresaleContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const PayWith = ({ variant }) => {
   const {
@@ -30,19 +30,39 @@ const PayWith = ({ variant }) => {
     getCurrentStagePrice,
   } = usePresaleData();
   
+  // Track if component is mounted to prevent state updates after unmount
+  const [isMounted, setIsMounted] = useState(true);
+  
   // Get current stage price when component mounts and set up interval to check for changes
   useEffect(() => {
+    setIsMounted(true);
+    
     // Get price immediately when component mounts
     getCurrentStagePrice();
     
     // Set up interval to check for price changes
     const priceCheckInterval = setInterval(() => {
-      getCurrentStagePrice();
+      if (isMounted) {
+        getCurrentStagePrice();
+      }
     }, 30000); // Check every 30 seconds
     
     // Clean up interval on component unmount
-    return () => clearInterval(priceCheckInterval);
+    return () => {
+      setIsMounted(false);
+      clearInterval(priceCheckInterval);
+    };
   }, []);
+
+  // Handle network switching through dropdown
+  const handleNetworkSwitch = (chainId) => {
+    console.log("Handling network switch to chainId:", chainId);
+    if (chainId === ethChainId) {
+      handleBuyOn('eth');
+    } else if (chainId === bnbChainId) {
+      handleBuyOn('bnb');
+    }
+  };
 
   return (
     <PayWithStyleWrapper variant={variant}>
@@ -156,7 +176,7 @@ const PayWith = ({ variant }) => {
         </div>
       </div>
 
-      <form action="/" method="post">
+      <form action="/" method="post" onSubmit={(e) => e.preventDefault()}>
         <div className="presale-item mb-30">
           <div className="presale-item-inner">
             <label>Pay with {payWithText}</label>
